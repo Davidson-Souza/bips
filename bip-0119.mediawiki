@@ -153,10 +153,10 @@ Validation of a OP_CHECKTEMPLATEVERIFY works as follows:
 * Verify if there is AT LEAST ONE element on the stack. 
 ** FAIL otherwise
 * Compute the DEFAULT_CTV_HASH as defined above
-* Verify if the topmost element of the stack is iqual to DEFAULT_CTV_HASH
+* Verify if the topmost element of the stack is equal to DEFAULT_CTV_HASH
 ** FAIL if not equal
 
-A pay to bare CTV is defined as a scriptPublicKey that only contais a push of a 32 bytes value, followed by a OP_CHECKTEMPLATEVERIFY opcode.  
+A pay to bare CTV is defined as a scriptPubKey that only contains a push of a 32 bytes value, followed by a OP_CHECKTEMPLATEVERIFY opcode.  
     OP_PUSH32 <32-bytes-hash> OP_CHECKTEMPLATEVERIFY
 ==Deployment==
 
