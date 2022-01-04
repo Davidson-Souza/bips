@@ -158,6 +158,8 @@ Validation of a OP_CHECKTEMPLATEVERIFY works as follows:
 
 A pay to bare CTV is defined as a scriptPubKey that only contains a push of a 32 bytes value, followed by a OP_CHECKTEMPLATEVERIFY opcode.  
     OP_PUSH32 <32-bytes-hash> OP_CHECKTEMPLATEVERIFY
+
+If PUSH length is not 32 bytes, validator SHOULD treat as OP_NOP, and MAY discourage use for future soft-forks. Transactions whose spk is not strictly equal to the one above MAY be non-standard, and MAY have its usage discouraged for future soft-forks.  
 ==Deployment==
 
 Deployment should be done via BIP 9 VersionBits deployed through Speedy Trial.
