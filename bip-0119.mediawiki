@@ -135,92 +135,29 @@ that output, they only have to verify their own sub-tree will pay them.
 
 ==Detailed Specification==
 
-The below code is the main logic for verifying CHECKTEMPLATEVERIFY, and is the canonical
-specification for the semantics of OP_CHECKTEMPLATEVERIFY.
+A template hash, represented as a single SHA-256 hash, is obtained as follows:
 
-    case OP_CHECKTEMPLATEVERIFY:
-    {
-        // if flags not enabled; treat as a NOP4
-        if (!(flags & SCRIPT_VERIFY_DEFAULT_CHECK_TEMPLATE_VERIFY_HASH)) {
-            if (flags & SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_NOPS)
-                return set_error(serror, SCRIPT_ERR_DISCOURAGE_UPGRADABLE_NOPS);
-            break;
-        }
+* nVersion
+* nLockTime
+* Input count treated as unsigned integer with 32 bits (uint32)
+* sequences_hash
+* Output count treated as unsigned integer with 32 bits (uint32)
+* outputs_hash
+* The index of the current input index
 
-        if (stack.size() < 1)
-            return set_error(serror, SCRIPT_ERR_INVALID_STACK_OPERATION);
 
-        // If the argument was not 32 bytes, treat as OP_NOP4:
-        switch (stack.back().size()) {
-            case 32:
-                if (!checker.CheckDefaultCheckTemplateVerifyHash(stack.back())) {
-                    return set_error(serror, SCRIPT_ERR_TEMPLATE_MISMATCH);
-                }
-                break;
-            default:
-                // future upgrade can add semantics for this opcode with different length args
-                // so discourage use when applicable
-                if (flags & SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_NOPS) {
-                    return set_error(serror, SCRIPT_ERR_DISCOURAGE_UPGRADABLE_NOPS);
-                }
-        }
-    }
-    break;
+'''sequences_hash''' and '''outputs_hash''' are defined as the single SHA256 of all the sequence numbers and all outputs serialized, respectively.
 
-Where
+Validation of a OP_CHECKTEMPLATEVERIFY works as follows:
 
-    bool CheckDefaultCheckTemplateVerifyHash(const std::vector<unsigned char>& hash) {
-        return GetDefaultCheckTemplateVerifyHash(current_tx, current_input_index) == uint256(hash);
-    }
+* Verify if there is AT LEAST ONE element on the stack. 
+** FAIL otherwise
+* Compute the DEFAULT_CTV_HASH as defined above
+* Verify if the topmost element of the stack is iqual to DEFAULT_CTV_HASH
+** FAIL if not equal
 
-The hash is computed as follows:
-
-    uint256 GetDefaultCheckTemplateVerifyHash(const CTransaction& tx, uint32_t input_index) {
-        return GetDefaultCheckTemplateVerifyHash(tx, GetOutputsSHA256(tx), GetSequenceSHA256(tx), input_index);
-    }
-    uint256 GetDefaultCheckTemplateVerifyHash(const CTransaction& tx, const uint256& outputs_hash, const uint256& sequences_hash,
-                                    const uint32_t input_index) {
-        bool skip_scriptSigs = std::find_if(tx.vin.begin(), tx.vin.end(),
-                [](const CTxIn& c) { return c.scriptSig != CScript(); }) == tx.vin.end();
-        return skip_scriptSigs ? GetDefaultCheckTemplateVerifyHashEmptyScript(tx, outputs_hash, sequences_hash, input_index) :
-            GetDefaultCheckTemplateVerifyHashWithScript(tx, outputs_hash, sequences_hash, GetScriptSigsSHA256(tx), input_index);
-    }
-    uint256 GetDefaultCheckTemplateVerifyHashWithScript(const CTransaction& tx, const uint256& outputs_hash, const uint256& sequences_hash,
-                                    const uint256& scriptSig_hash, const uint32_t input_index) {
-        auto h =  CHashWriter(SER_GETHASH, 0)
-            << tx.nVersion
-            << tx.nLockTime
-            << scriptSig_hash
-            << uint32_t(tx.vin.size())
-            << sequences_hash
-            << uint32_t(tx.vout.size())
-            << outputs_hash
-            << input_index;
-        return h.GetSHA256();
-    }
-    uint256 GetDefaultCheckTemplateVerifyHashEmptyScript(const CTransaction& tx, const uint256& outputs_hash, const uint256& sequences_hash,
-                                    const uint32_t input_index) {
-        auto h =  CHashWriter(SER_GETHASH, 0)
-            << tx.nVersion
-            << tx.nLockTime
-            << uint32_t(tx.vin.size())
-            << sequences_hash
-            << uint32_t(tx.vout.size())
-            << outputs_hash
-            << input_index;
-        return h.GetSHA256();
-    }
-
-A PayToBareDefaultCheckTemplateVerifyHash output matches the following template:
-
-    bool CScript::IsPayToBareDefaultCheckTemplateVerifyHash() const
-    {
-     // Extra-fast test for pay-to-basic-standard-template CScripts:
-     return (this->size() == 34 &&
-             (*this)[0] == 0x20 &&
-             (*this)[33] == OP_CHECKTEMPLATEVERIFY);
-    }
-
+A pay to bare CTV is defined as a scriptPublicKey that only contais a push of a 32 bytes value, followed by a OP_CHECKTEMPLATEVERIFY opcode.  
+    OP_PUSH32 <32-bytes-hash> OP_CHECKTEMPLATEVERIFY
 ==Deployment==
 
 Deployment should be done via BIP 9 VersionBits deployed through Speedy Trial.
