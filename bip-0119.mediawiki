@@ -150,16 +150,17 @@ A template hash, represented as a single SHA-256 hash, is obtained as follows:
 
 Validation of a OP_CHECKTEMPLATEVERIFY works as follows:
 
-* Verify if there is AT LEAST ONE element on the stack. 
+* Verify that there is AT LEAST ONE element on the stack. 
 ** FAIL otherwise
+* Verify that the topmost stack element is 32-bytes long
+** Treat as OP_NOP otherwise
 * Compute the DEFAULT_CTV_HASH as defined above
 * Verify if the topmost element of the stack is equal to DEFAULT_CTV_HASH
 ** FAIL if not equal
 
-A pay to bare CTV is defined as a scriptPubKey that only contains a push of a 32 bytes value, followed by a OP_CHECKTEMPLATEVERIFY opcode.  
+A pay to bare CTV is defined as a scriptPubKey that only contains a push of a 32 bytes value, followed by a OP_CHECKTEMPLATEVERIFY opcode, SHOULD be considered a standard type transaction.  
     OP_PUSH32 <32-bytes-hash> OP_CHECKTEMPLATEVERIFY
-
-If PUSH length is not 32 bytes, validator SHOULD treat as OP_NOP, and MAY discourage use for future soft-forks. Transactions whose spk is not strictly equal to the one above MAY be non-standard, and MAY have its usage discouraged for future soft-forks.  
+If PUSH length is not 32 bytes, validator SHOULD treat as OP_NOP, and MAY discourage use. Transactions whose spk is not strictly equal to the one above MAY be non-standard, and MAY have its usage discouraged.  
 ==Deployment==
 
 Deployment should be done via BIP 9 VersionBits deployed through Speedy Trial.
